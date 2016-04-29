@@ -70,6 +70,10 @@ module Owrb
     def click( expression )
       @browser.element( :xpath, expression ).click
     end
+    
+    def quit
+      @browser.quit
+    end
   end
   
 =begin
