@@ -24,18 +24,30 @@ module Owrb
   
   module HTML
     class Element
-      attr_reader :name, :attributes
+      attr_reader :element, :name, :attributes, :inner_html
       
       def initialize( element )
+        @element = element
         @name = element.name
         @attributes = {}
         element.attributes.each{|name, attribute|
           @attributes[ attribute.name ] = attribute.value
         }
+        @inner_html = element.inner_html
+      end
+      
+      def to_h
+        {
+          :name       => @name,
+          :attributes => @attributes,
+          :inner_html => @inner_html,
+        }
       end
     end
     
     class Document
+      attr_reader :document
+      
       def initialize( document )
         @document = document
       end
@@ -55,6 +67,8 @@ module Owrb
   end
   
   class Browser
+    attr_reader :browser
+    
     def initialize( type = :phantomjs )
       @browser = Watir::Browser.new( type )
     end
@@ -73,6 +87,10 @@ module Owrb
     
     def quit
       @browser.quit
+    end
+    
+    def document
+      HTML.parse( @browser.html )
     end
   end
   
