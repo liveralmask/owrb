@@ -23,4 +23,8 @@ Gem::Specification.new do |spec|
   
   spec.add_dependency "nokogiri"
   spec.add_dependency "watir"
+  spec.add_dependency "omniauth"
+  spec.add_dependency "omniauth-twitter"
+  spec.add_dependency "omniauth-facebook"
+  spec.add_dependency "omniauth-github"
 end

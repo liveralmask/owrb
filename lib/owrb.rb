@@ -4,11 +4,25 @@ require "uri"
 require "json"
 require "nokogiri"
 require "watir-webdriver"
+require "omniauth"
+require "omniauth-twitter"
+require "omniauth-facebook"
+require "omniauth-github"
+require "openssl"
+require "base64"
 
 module Owrb
   module URL
     def self.parse( url )
       URI.parse( url )
+    end
+    
+    def self.encode( url )
+      URI.encode( url )
+    end
+    
+    def self.decode( url )
+      URI.decode( url )
     end
   end
   
@@ -94,15 +108,98 @@ module Owrb
     end
   end
   
-=begin
-  class Cipher
-    def encode
+  module Rails
+    module Auth
+      def self.provider( type, key, secret )
+        key = key.to_s
+        key = ENV[ key ] if ENV.key?( key )
+        
+        secret = secret.to_s
+        secret = ENV[ secret ] if ENV.key?( secret )
+        
+        [ type, key, secret ]
+      end
       
+      def self.set( providers )
+        ::Rails.application.config.middleware.use ::OmniAuth::Builder do
+          providers.each{|args|
+            provider *Auth.provider( *args )
+          }
+        end
+      end
     end
     
-    def decode
+    class Cookie
+      attr_reader :cookies
       
+      def initialize( cookies )
+        @cookies = cookies
+      end
+      
+      def get( key, default_value )
+        value = @cookies.signed[ key ]
+        value.nil? ? default_value : value
+      end
+      
+      def set( key, value, expires = 1.years.from_now )
+        @cookies.signed[ key ] = { :value => value, :expires => expires }
+      end
+      
+      def delete( key )
+        @cookies.delete key
+      end
     end
   end
-=end
+  
+  module Data
+    def self.hash( data )
+      Digest::SHA512::hexdigest( data )
+    end
+    
+    class Cipher
+      attr_reader   :cipher
+      attr_accessor :key, :iv
+      
+      def initialize( cipher )
+        @cipher = cipher
+        @key = ""
+        @iv = ""
+      end
+      
+      def key_iv( pass, salt, count = 2000 )
+        result = OpenSSL::PKCS5.pbkdf2_hmac_sha1( pass, salt, count, @cipher.key_len + @cipher.iv_len )
+        @key = result[ 0, @cipher.key_len ]
+        @iv = result[ @cipher.key_len, @cipher.iv_len ]
+        [ @key, @iv ]
+      end
+      
+      def encrypt( data )
+        @cipher.encrypt
+        @cipher.key = @key
+        @cipher.iv = @iv
+        "#{@cipher.update( data )}#{@cipher.final}"
+      end
+      
+      def decrypt( data )
+        @cipher.decrypt
+        @cipher.key = @key
+        @cipher.iv = @iv
+        "#{@cipher.update( data )}#{@cipher.final}"
+      end
+    end
+    
+    def self.cipher( name = "AES-256-CBC" )
+      Cipher.new( OpenSSL::Cipher.new( name ) )
+    end
+    
+    module Base64
+      def self.encode( data )
+        ::Base64.urlsafe_encode64( data )
+      end
+      
+      def self.decode( data )
+        ::Base64.urlsafe_decode64( data )
+      end
+    end
+  end
 end
