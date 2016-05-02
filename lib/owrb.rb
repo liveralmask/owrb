@@ -202,4 +202,51 @@ module Owrb
       end
     end
   end
+  
+  class UserAgent
+    attr_reader :user_agent, :os
+    
+    def initialize( user_agent )
+      @user_agent = user_agent
+      
+      @os = parse_os( user_agent )
+    end
+    
+    def pc?
+      case @os[ :type ]
+      when :mac
+        true
+      else
+        false
+      end
+    end
+    
+    def to_s
+      "#{@user_agent} #{@os[ :type ]}/#{@os[ :version ]}"
+    end
+    
+  protected
+    def parse_os( user_agent )
+      os = {
+        :type    => :unknown,
+        :version => "",
+      }
+      case user_agent
+      when /Mac OS X\s([0-9_\.]+)/
+        os[ :type ] = :mac
+        os[ :version ] = $1
+      end
+      os
+    end
+  end
+  
+  class Time
+    def initialize
+      @value = ::Time.now
+    end
+    
+    def to_s
+      @value.strftime( "%Y/%m/%d %H:%M:%S.%6N" )
+    end
+  end
 end
