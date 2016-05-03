@@ -78,6 +78,58 @@ module Owrb
     def self.parse( code )
       Document.new( Nokogiri::HTML.parse( code ) )
     end
+    
+    module Style
+      def self.css( name, *args )
+        <<EOS
+#{name} {
+  #{args.collect{|styles| styles.join( ";\n  " )}.join( ";\n  " )}
+}
+EOS
+      end
+      
+      def self.border( styles )
+        result = []
+        result.push "border: #{styles[ :border ]}" if styles.key?( :border )
+        if styles.key?( :radius )
+          result.push "border-radius: #{styles[ :radius ]}"
+          result.push "-webkit-border-radius: #{styles[ :radius ]}"
+          result.push "-moz-border-radius: #{styles[ :radius ]}"
+        end
+        result
+      end
+      
+      def self.font( styles )
+        result = []
+        result.push "font-size: #{styles[ :size ]}" if styles.key?( :size )
+        result.push "font-weight: #{styles[ :style ]}" if styles.key?( :style )
+        result.push "font-family: #{styles[ :family ]}" if styles.key?( :family )
+        result
+      end
+      
+      def self.text( styles )
+        result = []
+        result.push "text-decoration: #{styles[ :decoration ]}" if styles.key?( :decoration )
+        result.push "text-shadow: #{styles[ :shadow ]}" if styles.key?( :shadow )
+        result.push "color: #{styles[ :color ]}" if styles.key?( :color )
+        result
+      end
+      
+      def self.background( styles )
+        result = []
+        if styles.key?( :linear_gradient )
+          color = styles[ :linear_gradient ][ :color ]
+          result.push "background-color: #{color[ 0 ]}"
+          result.push "background-image: -webkit-gradient(linear, left top, left bottom, from(#{color[ 0 ]}), to(#{color[ 1 ]}))"
+          result.push "background-image: -webkit-linear-gradient(top, #{color[ 0 ]}, #{color[ 1 ]})"
+          result.push "background-image: -moz-linear-gradient(top, #{color[ 0 ]}, #{color[ 1 ]})"
+          result.push "background-image: -ms-linear-gradient(top, #{color[ 0 ]}, #{color[ 1 ]})"
+          result.push "background-image: -o-linear-gradient(top, #{color[ 0 ]}, #{color[ 1 ]})"
+          result.push "background-image: linear-gradient(to bottom, #{color[ 0 ]}, #{color[ 1 ]})"
+        end
+        result
+      end
+    end
   end
   
   class Browser
@@ -200,43 +252,6 @@ module Owrb
       def self.decode( data )
         ::Base64.urlsafe_decode64( data )
       end
-    end
-  end
-  
-  class UserAgent
-    attr_reader :user_agent, :os
-    
-    def initialize( user_agent )
-      @user_agent = user_agent
-      
-      @os = parse_os( user_agent )
-    end
-    
-    def pc?
-      case @os[ :type ]
-      when :mac
-        true
-      else
-        false
-      end
-    end
-    
-    def to_s
-      "#{@user_agent} #{@os[ :type ]}/#{@os[ :version ]}"
-    end
-    
-  protected
-    def parse_os( user_agent )
-      os = {
-        :type    => :unknown,
-        :version => "",
-      }
-      case user_agent
-      when /Mac OS X\s([0-9_\.]+)/
-        os[ :type ] = :mac
-        os[ :version ] = $1
-      end
-      os
     end
   end
   
