@@ -117,6 +117,8 @@ EOS
       
       def self.background( styles )
         result = []
+        result.push "background-color: #{styles[ :color ]}" if styles.key?( :color )
+        result.push "background-image: #{styles[ :image ]}" if styles.key?( :image )
         if styles.key?( :linear_gradient )
           color = styles[ :linear_gradient ][ :color ]
           result.push "background-color: #{color[ 0 ]}"
@@ -193,7 +195,7 @@ EOS
         value.nil? ? default_value : value
       end
       
-      def set( key, value, expires = 1.years.from_now )
+      def set( key, value, expires = 1.years.from_now( ::Time.now ) )
         @cookies.signed[ key ] = { :value => value, :expires => expires }
       end
       
@@ -256,12 +258,72 @@ EOS
   end
   
   class Time
-    def initialize
-      @value = ::Time.now
+    DAY_SECONDS    = 24 * 60 * 60
+    HOUR_SECONDS   = 60 * 60
+    MINUTE_SECONDS = 60
+    
+    def self.format( type, value = ::Time.now )
+      case type
+      when :all
+        value.strftime( "%Y/%m/%d %H:%M:%S.%6N" )
+      when :ymdhms
+        value.strftime( "%Y/%m/%d %H:%M:%S" )
+      else
+        ""
+      end
+    end
+    
+    attr_reader :value
+    
+    def initialize( value = ::Time.now )
+      @value = value
     end
     
     def to_s
-      @value.strftime( "%Y/%m/%d %H:%M:%S.%6N" )
+      Time::format( :all, @value )
+    end
+    
+    def add_days( value )
+      @value + value * DAY_SECONDS
+    end
+    
+    def add_hours( value )
+      @value + value * HOUR_SECONDS
+    end
+    
+    def add_minutes( value )
+      @value + value * MINUTE_SECONDS
+    end
+    
+    def add_seconds( value )
+      @value + value
+    end
+    
+    def diff_days( seconds )
+      [ seconds / DAY_SECONDS, seconds % DAY_SECONDS ]
+    end
+    
+    def diff_hours( seconds )
+      [ seconds / HOUR_SECONDS, seconds % HOUR_SECONDS ]
+    end
+    
+    def diff_minutes( seconds )
+      [ seconds / MINUTE_SECONDS, seconds % MINUTE_SECONDS ]
+    end
+    
+    def diff( value )
+      total_seconds = ( value < @value ) ? @value - value : value - @value
+      total_seconds = total_seconds.to_i
+      days = diff_days( total_seconds )
+      hours = diff_hours( days[ 1 ] )
+      minutes = diff_minutes( hours[ 1 ] )
+      {
+        :total_seconds => total_seconds,
+        :days          => days[ 0 ],
+        :hours         => hours[ 0 ],
+        :minutes       => minutes[ 0 ],
+        :seconds       => minutes[ 1 ],
+      }
     end
   end
 end
