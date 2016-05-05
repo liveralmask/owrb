@@ -111,6 +111,7 @@ EOS
         result = []
         result.push "text-decoration: #{styles[ :decoration ]}" if styles.key?( :decoration )
         result.push "text-shadow: #{styles[ :shadow ]}" if styles.key?( :shadow )
+        result.push "text-align: #{styles[ :align ]}" if styles.key?( :align )
         result.push "color: #{styles[ :color ]}" if styles.key?( :color )
         result
       end
